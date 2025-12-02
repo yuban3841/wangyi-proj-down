@@ -1,0 +1,85 @@
+name: Validation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  validate-project:
+    name: Validate Project Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Unreal Project File
+        run: |
+          if [ ! -f "my_game.uproject" ]; then
+            echo "Error: my_game.uproject not found!"
+            exit 1
+          fi
+          echo "✓ Project file found"
+
+          # Validate JSON structure
+          if ! jq empty my_game.uproject 2>/dev/null; then
+            echo "Error: Invalid JSON in my_game.uproject"
+            exit 1
+          fi
+          echo "✓ Project file is valid JSON"
+
+          # Check engine version
+          ENGINE_VERSION=$(jq -r '.EngineAssociation' my_game.uproject)
+          echo "Engine Version: $ENGINE_VERSION"
+
+      - name: Validate Source Files
+        run: |
+          if [ ! -d "Source" ]; then
+            echo "Error: Source directory not found!"
+            exit 1
+          fi
+          echo "✓ Source directory exists"
+
+          # Count C++ files
+          CPP_COUNT=$(find Source -name "*.cpp" | wc -l)
+          H_COUNT=$(find Source -name "*.h" | wc -l)
+          echo "Found $CPP_COUNT .cpp files and $H_COUNT .h files"
+
+      - name: Validate Build Files
+        run: |
+          # Check for Build.cs files
+          if ! find Source -name "*.Build.cs" | grep -q .; then
+            echo "Error: No Build.cs files found!"
+            exit 1
+          fi
+          echo "✓ Build.cs files found"
+
+          # Check for Target.cs files
+          if ! find Source -name "*.Target.cs" | grep -q .; then
+            echo "Error: No Target.cs files found!"
+            exit 1
+          fi
+          echo "✓ Target.cs files found"
+
+      - name: Check Content Directory
+        run: |
+          if [ ! -d "Content" ]; then
+            echo "Warning: Content directory not found"
+          else
+            echo "✓ Content directory exists"
+          fi
+
+      - name: Validation Summary
+        run: |
+          echo "========================================="
+          echo "Project Validation Complete!"
+          echo "========================================="
+          echo "Project: my_game"
+          echo "Engine: Unreal Engine $(jq -r '.EngineAssociation' my_game.uproject)"
+          echo "Status: ✓ All validations passed"

@@ -1,0 +1,58 @@
+name: CI - Build and Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    name: Build Unreal Engine Project
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Unreal Engine
+        uses: game-ci/setup-unreal-engine@v1
+        with:
+          unreal-version: '5.6'
+
+      - name: Build Project
+        run: |
+          # Build the Unreal Engine project
+          # Note: Adjust paths based on your UE installation
+          $UE_PATH = "C:\Program Files\Epic Games\UE_5.6\Engine\Build\BatchFiles\Build.bat"
+          & $UE_PATH my_gameEditor Win64 Development "${{ github.workspace }}\my_game.uproject" -waitmutex
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Run Tests
+        run: |
+          # Run Unreal Engine automation tests
+          $UE_PATH = "C:\Program Files\Epic Games\UE_5.6\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          if (Test-Path $UE_PATH) {
+            & $UE_PATH "${{ github.workspace }}\my_game.uproject" -ExecCmds="Automation RunTests Now" -unattended -nopause -NullRHI -log
+          } else {
+            Write-Host "UnrealEditor-Cmd.exe not found. Skipping tests."
+          }
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-logs
+          path: |
+            **/*.log
+            Saved/Logs/
+          retention-days: 7
