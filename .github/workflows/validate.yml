@@ -14,6 +14,8 @@ jobs:
   validate-project:
     name: Validate Project Structure
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Repository
