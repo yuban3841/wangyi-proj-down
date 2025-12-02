@@ -37,9 +37,8 @@ jobs:
           echo "Found C++ files:"
           echo "$CPP_FILES"
 
-          # Note: This is a dry-run check only
-          # To enforce formatting, remove --dry-run and add --Werror
-          echo "$CPP_FILES" | xargs clang-format --dry-run --style=file --fallback-style=LLVM 2>&1 || true
+          # Check formatting and show any issues (non-blocking)
+          echo "$CPP_FILES" | xargs clang-format --dry-run --style=file --fallback-style=LLVM 2>&1 || echo "⚠ Formatting suggestions available (non-blocking)"
           echo "✓ Format check completed"
 
       - name: Check File Sizes

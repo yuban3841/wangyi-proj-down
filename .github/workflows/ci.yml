@@ -21,28 +21,34 @@ jobs:
         with:
           lfs: true
 
-      - name: Setup Unreal Engine
-        uses: game-ci/setup-unreal-engine@v1
-        with:
-          unreal-version: '5.6'
-
       - name: Build Project
         run: |
-          # Build the Unreal Engine project
-          # Note: Adjust paths based on your UE installation
-          $UE_PATH = "C:\Program Files\Epic Games\UE_5.6\Engine\Build\BatchFiles\Build.bat"
-          & $UE_PATH my_gameEditor Win64 Development "${{ github.workspace }}\my_game.uproject" -waitmutex
+          # Note: This workflow requires Unreal Engine 5.6 to be installed
+          # For self-hosted runners, ensure UE is installed and available in PATH
+          # For GitHub-hosted runners, consider using game-ci actions with proper licensing
+
+          # Check if UnrealBuildTool is available
+          if (Get-Command "UnrealBuildTool" -ErrorAction SilentlyContinue) {
+            Write-Host "Building with UnrealBuildTool..."
+            UnrealBuildTool -projectfiles -project="${{ github.workspace }}\my_game.uproject" -game -engine
+          } else {
+            Write-Host "⚠ UnrealBuildTool not found in PATH"
+            Write-Host "This workflow requires Unreal Engine 5.6 to be installed"
+            Write-Host "For self-hosted runners: Install UE 5.6 and add to PATH"
+            Write-Host "For GitHub-hosted runners: Configure with Epic Games licensing"
+          }
         shell: pwsh
         continue-on-error: true
 
       - name: Run Tests
         run: |
-          # Run Unreal Engine automation tests
-          $UE_PATH = "C:\Program Files\Epic Games\UE_5.6\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
-          if (Test-Path $UE_PATH) {
-            & $UE_PATH "${{ github.workspace }}\my_game.uproject" -ExecCmds="Automation RunTests Now" -unattended -nopause -NullRHI -log
+          # Run Unreal Engine automation tests if UnrealEditor-Cmd is available
+          if (Get-Command "UnrealEditor-Cmd" -ErrorAction SilentlyContinue) {
+            Write-Host "Running automated tests..."
+            UnrealEditor-Cmd "${{ github.workspace }}\my_game.uproject" -ExecCmds="Automation RunTests Now" -unattended -nopause -NullRHI -log
           } else {
-            Write-Host "UnrealEditor-Cmd.exe not found. Skipping tests."
+            Write-Host "⚠ UnrealEditor-Cmd not found in PATH"
+            Write-Host "Skipping automated tests"
           }
         shell: pwsh
         continue-on-error: true

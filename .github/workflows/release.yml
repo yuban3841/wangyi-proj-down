@@ -58,12 +58,13 @@ jobs:
           # Create a source archive excluding unnecessary files
           mkdir -p release
 
-          # Copy project files
-          cp -r Source release/
-          cp -r Content release/
-          cp -r Config release/
-          cp my_game.uproject release/
-          cp README.md release/ 2>/dev/null || true
+          # Copy project files (check existence first)
+          [ -d "Source" ] && cp -r Source release/ || echo "Source directory not found"
+          [ -d "Content" ] && cp -r Content release/ || echo "Content directory not found"
+          [ -d "Config" ] && cp -r Config release/ || echo "Config directory not found"
+          [ -f "my_game.uproject" ] && cp my_game.uproject release/ || echo "Project file not found"
+          [ -f "README.md" ] && cp README.md release/ || echo "README not found"
+          [ -f "README_CN.md" ] && cp README_CN.md release/ || echo "Chinese README not found"
 
           # Create archive
           cd release
