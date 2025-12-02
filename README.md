@@ -60,3 +60,7 @@ This will trigger the automated release workflow that creates a GitHub release w
 ## License
 
 [Add your license information here]
+
+---
+
+[中文版本](README_CN.md)
