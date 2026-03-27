@@ -1,0 +1,88 @@
+name: Code Quality
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  analyze:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run clang-format Check
+        run: |
+          echo "Checking C++ code formatting..."
+          # Install clang-format if needed
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+          # Find all C++ files
+          CPP_FILES=$(find Source -type f \( -name "*.cpp" -o -name "*.h" \) 2>/dev/null || true)
+
+          if [ -z "$CPP_FILES" ]; then
+            echo "No C++ files found to check"
+            exit 0
+          fi
+
+          echo "Found C++ files:"
+          echo "$CPP_FILES"
+
+          # Check formatting and show any issues (non-blocking)
+          echo "$CPP_FILES" | xargs clang-format --dry-run --style=file --fallback-style=LLVM 2>&1 || echo "⚠ Formatting suggestions available (non-blocking)"
+          echo "✓ Format check completed"
+
+      - name: Check File Sizes
+        run: |
+          echo "Checking for large files..."
+          # Find files larger than 10MB (excluding git directory)
+          LARGE_FILES=$(find . -type f -size +10M ! -path "./.git/*" ! -path "./Binaries/*" ! -path "./Intermediate/*" 2>/dev/null || true)
+
+          if [ -n "$LARGE_FILES" ]; then
+            echo "Warning: Found large files:"
+            echo "$LARGE_FILES"
+          else
+            echo "✓ No large files found"
+          fi
+
+      - name: Check for Secrets
+        run: |
+          echo "Checking for potential secrets..."
+          # Basic check for common secret patterns
+          if grep -r -i "password\s*=\|api_key\s*=\|secret\s*=" Source/ 2>/dev/null; then
+            echo "Warning: Found potential hardcoded secrets"
+          else
+            echo "✓ No obvious secrets found"
+          fi
+
+      - name: Count Lines of Code
+        run: |
+          echo "========================================="
+          echo "Code Statistics"
+          echo "========================================="
+
+          if command -v cloc &> /dev/null; then
+            cloc Source/ --exclude-dir=Intermediate
+          else
+            # Fallback to basic counting
+            echo "C++ Source Files:"
+            find Source -name "*.cpp" | wc -l
+            echo "C++ Header Files:"
+            find Source -name "*.h" | wc -l
+            echo ""
+            echo "Total Lines in .cpp files:"
+            find Source -name "*.cpp" -exec wc -l {} + 2>/dev/null | tail -1 || echo "0"
+            echo "Total Lines in .h files:"
+            find Source -name "*.h" -exec wc -l {} + 2>/dev/null | tail -1 || echo "0"
+          fi
